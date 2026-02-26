@@ -1,4 +1,18 @@
+"""
+Network Scanner Tool
 
+Performs TCP-based host discovery and concurrent port scanning on a given CIDR range.
+Outputs results in JSON and Markdown report formats.
+
+Features:
+- CIDR subnet scanning
+- TCP host discovery using common ports
+- Concurrent port scanning using threads
+- JSON and Markdown report generation
+- Cross-platform compatible (Windows, Linux, Docker)
+
+Author: Hunain Ali
+"""
 
 import argparse
 import json
@@ -15,10 +29,16 @@ DEFAULT_PORTS = [
     143, 443, 445, 993, 995, 1723, 3306, 3389, 5900, 8080
 ]
 
-
+# Main scanner class responsible for:
+# - Host discovery
+# - Port scanning
+# - Result storage and reporting
 class NetworkScanner:
     
-
+# Initialize scanner with:
+# - Target network range
+# - Ports to scan
+# - Connection timeout
     def __init__(self, cidr: str, ports: Optional[List[int]] = None, timeout: int = 2):
         try:
             self.network = IPv4Network(cidr, strict=False)
@@ -38,7 +58,9 @@ class NetworkScanner:
             },
             "live_hosts": []
         }
-
+    # Discover live hosts by attempting TCP connections
+    # to commonly open ports (22, 80, 443)
+    # This method works reliably across platforms and Docker
     def discover_hosts(self) -> List[str]:
         
         print(f"[*] Starting TCP-based host discovery on {self.network}...")
@@ -70,7 +92,9 @@ class NetworkScanner:
 
         print(f"[+] Discovered {len(live_ips)} live hosts.")
         return live_ips
-
+        
+    # Attempt TCP connection to a specific port
+    # Returns port number if open, otherwise None
     def _scan_single_port(self, ip: str, port: int) -> Optional[int]:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -81,8 +105,11 @@ class NetworkScanner:
         except socket.error:
             pass
         return None
-
+        
+    # Scan all specified ports on discovered live hosts
+    # Uses threading for faster scanning
     def scan_ports(self, live_ips: List[str]) -> None:
+     
         print(f"[*] Scanning ports on {len(live_ips)} hosts...")
 
         open_ports_map: Dict[str, List[int]] = {ip: [] for ip in live_ips}
@@ -107,12 +134,17 @@ class NetworkScanner:
                 ports.sort()
                 print(f"    [+] {ip}: Open ports {ports}")
 
+                
+                # Stores scan metadata and discovered hosts
                 self.results["live_hosts"].append({
                     "ip": ip,
                     "open_ports": ports,
                     "port_count": len(ports)
                 })
-
+    # Main execution workflow:
+    # 1. Discover live hosts
+    # 2. Scan ports on live hosts
+    # 3. Record scan timing
     def run(self) -> Dict:
         start_time = datetime.now()
         self.results["scan_metadata"]["scan_start_time"] = start_time.isoformat()
@@ -214,4 +246,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
